@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import { FC } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -24,12 +24,12 @@ interface ProductModalProps {
   ну и все смотрится как-то органично и консистентно
 */
 const ProductModal: FC<ProductModalProps> = ({ isOpen, onClose, product }) => {
-  const { name, description, quantity, unit, imageUrl, categoryId } = product;
+  const { name, description, quantity, unit, imageUrl, category } = product;
   const categories = useSelector(
     (state: RootState) => state.categories.categories
   );
   const categoryName =
-    categories.find((cat) => cat.id === categoryId)?.name || "Не указано";
+    categories.find((cat) => cat._id === category)?.name || "Без категории";
 
   return (
     <Dialog

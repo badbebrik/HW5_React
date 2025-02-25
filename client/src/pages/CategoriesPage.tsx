@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../store/store';
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "../store/store";
 import {
   Box,
   Typography,
@@ -14,50 +14,59 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-} from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-import { addCategory, removeCategory, updateCategory } from '../store/slices/categoriesSlice';
-import { Category } from '../types/Category';
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+
+import {
+  fetchCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from "../store/slices/categoriesSlice";
+import { Category } from "../types/Category";
 
 const CategoriesPage: React.FC = () => {
-  const categories = useSelector((state: RootState) => state.categories.categories) as Category[];
-  const products = useSelector((state: RootState) => state.products.products);
+  const { categories, loading } = useSelector(
+    (state: RootState) => state.categories
+  );
   const dispatch = useDispatch();
 
   const [isModalOpen, setModalOpen] = useState(false);
-  const [newCategory, setNewCategory] = useState('');
-  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
-  const [editedCategoryName, setEditedCategoryName] = useState('');
+  const [newCategory, setNewCategory] = useState("");
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editedCategoryName, setEditedCategoryName] = useState("");
 
-  const handleAddCategory = () => {
-    if (!newCategory) return;
-    dispatch(addCategory({ id: Date.now(), name: newCategory }));
-    setNewCategory('');
+  useEffect(() => {
+    dispatch(fetchCategories() as any);
+  }, [dispatch]);
+
+  const handleAddCategory = async () => {
+    if (!newCategory.trim()) return;
+    await dispatch(createCategory({ name: newCategory }) as any);
+    setNewCategory("");
     setModalOpen(false);
   };
 
-  const handleDeleteCategory = (catId: number) => {
-    const count = products.filter(p => p.categoryId === catId).length;
-    if (count > 0) {
-      if (window.confirm(`Данная категория принадлежит ${count} товарам, вы действительно хотите удалить её? При согласии данные категории будут помечены "Не указано".`)) {
-        dispatch(removeCategory(catId));
-      }
-    } else {
-      dispatch(removeCategory(catId));
-    }
+  const handleDeleteCategory = async (cat: Category) => {
+    await dispatch(deleteCategory(cat._id) as any);
   };
 
   const handleEditCategory = (cat: Category) => {
-    setEditingCategoryId(cat.id);
+    setEditingCategory(cat);
     setEditedCategoryName(cat.name);
   };
 
-  const handleSaveEdit = () => {
-    if (editingCategoryId !== null && editedCategoryName) {
-      dispatch(updateCategory({ id: editingCategoryId, name: editedCategoryName }));
-      setEditingCategoryId(null);
-      setEditedCategoryName('');
+  const handleSaveEdit = async () => {
+    if (editingCategory && editedCategoryName.trim()) {
+      await dispatch(
+        updateCategory({
+          id: editingCategory._id,
+          name: editedCategoryName,
+        }) as any
+      );
+      setEditingCategory(null);
+      setEditedCategoryName("");
     }
   };
 
@@ -66,19 +75,29 @@ const CategoriesPage: React.FC = () => {
       <Typography variant="h4" mb={2}>
         Управление категориями
       </Typography>
-      <Button variant="contained" color="primary" onClick={() => setModalOpen(true)}>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => setModalOpen(true)}
+      >
         Добавить категорию
       </Button>
+
+      {loading && <p>Загрузка...</p>}
+
       <List>
         {categories.map((cat) => (
           <ListItem
-            key={cat.id}
+            key={cat._id}
             secondaryAction={
               <>
                 <IconButton edge="end" onClick={() => handleEditCategory(cat)}>
                   <EditIcon />
                 </IconButton>
-                <IconButton edge="end" onClick={() => handleDeleteCategory(cat.id)}>
+                <IconButton
+                  edge="end"
+                  onClick={() => handleDeleteCategory(cat)}
+                >
                   <DeleteIcon />
                 </IconButton>
               </>
@@ -103,13 +122,17 @@ const CategoriesPage: React.FC = () => {
           <Button onClick={() => setModalOpen(false)} color="secondary">
             Отмена
           </Button>
-          <Button onClick={handleAddCategory} color="primary" variant="contained">
+          <Button
+            onClick={handleAddCategory}
+            color="primary"
+            variant="contained"
+          >
             Сохранить
           </Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog open={editingCategoryId !== null} onClose={() => setEditingCategoryId(null)}>
+      <Dialog open={!!editingCategory} onClose={() => setEditingCategory(null)}>
         <DialogTitle>Редактировать категорию</DialogTitle>
         <DialogContent>
           <TextField
@@ -120,7 +143,7 @@ const CategoriesPage: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditingCategoryId(null)} color="secondary">
+          <Button onClick={() => setEditingCategory(null)} color="secondary">
             Отмена
           </Button>
           <Button onClick={handleSaveEdit} color="primary" variant="contained">

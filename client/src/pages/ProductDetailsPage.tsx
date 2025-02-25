@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../store/store";
-import { useRef } from "react";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Box,
@@ -15,12 +14,12 @@ import {
   TextField,
   MenuItem,
 } from "@mui/material";
-import { removeProduct, updateProduct } from "../store/slices/productsSlice";
+import { deleteProduct, updateProduct } from "../store/slices/productsSlice";
 
 const ProductDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const product = useSelector((state: RootState) =>
-    state.products.products.find((p) => p.id === Number(id))
+    state.products.products.find((p) => p._id === id)
   );
   const categories = useSelector(
     (state: RootState) => state.categories.categories
@@ -31,30 +30,31 @@ const ProductDetailsPage: React.FC = () => {
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
-  const [editCategoryId, setEditCategoryId] = useState<number | "">("");
+  const [editCategoryId, setEditCategoryId] = useState<string>("");
   const [editQuantity, setEditQuantity] = useState<number>(0);
   const [editUnit, setEditUnit] = useState("");
   const [editPrice, setEditPrice] = useState<number>(0);
   const [editImageUrl, setEditImageUrl] = useState("");
 
-  const hasDispatched = useRef(false);
+  const hasDispatchedView = useRef(false);
+
+  const viewCount = useSelector((state: RootState) => {
+    const counts = state.views.counts as Record<string, number>;
+    return counts[id || ""] || 0;
+  });
 
   useEffect(() => {
-    if (product && !hasDispatched.current) {
-      dispatch({ type: "PRODUCT_DETAIL_OPENED", payload: product.id });
-      hasDispatched.current = true;
+    if (product && !hasDispatchedView.current) {
+      dispatch({ type: "PRODUCT_DETAIL_OPENED", payload: product._id });
+      hasDispatchedView.current = true;
     }
   }, [dispatch, product]);
-
-  const viewCount = useSelector(
-    (state: RootState) => state.views.counts[Number(id)] || 0
-  );
 
   useEffect(() => {
     if (product) {
       setEditName(product.name);
       setEditDescription(product.description);
-      setEditCategoryId(product.categoryId ?? "");
+      setEditCategoryId(product.category ?? "");
       setEditQuantity(product.quantity);
       setEditUnit(product.unit);
       setEditPrice(product.price);
@@ -67,44 +67,44 @@ const ProductDetailsPage: React.FC = () => {
   }
 
   const handleDelete = () => {
-    dispatch(removeProduct(product.id));
+    dispatch(deleteProduct(product._id) as any);
     navigate("/");
   };
 
   const handleEditSave = () => {
-    if (
-      !editName ||
-      !editDescription ||
-      editCategoryId === "" ||
-      editQuantity <= 0 ||
-      !editUnit ||
-      editPrice <= 0
-    ) {
-      alert(
-        "Все поля обязательны для заполнения, а количество и цена должны быть больше 0"
-      );
+    if (!editName || !editDescription || !editUnit) {
+      alert("Название, описание и единица измерения обязательны!");
       return;
     }
+    if (editQuantity <= 0 || editPrice <= 0) {
+      alert("Количество и цена должны быть больше 0");
+      return;
+    }
+
     dispatch(
       updateProduct({
-        id: product.id,
+        _id: product._id,
         name: editName,
         description: editDescription,
-        categoryId: editCategoryId as number,
+        category: editCategoryId === "" ? null : editCategoryId,
         quantity: editQuantity,
         unit: editUnit,
         price: editPrice,
         imageUrl: editImageUrl,
-      })
+      }) as any
     );
     setEditModalOpen(false);
   };
+
+  const categoryName = categories.find(
+    (cat) => cat._id === product.category
+  )?.name;
 
   return (
     <Box p={3}>
       <Typography variant="h4">{product.name}</Typography>
       <Typography variant="subtitle1" color="text.secondary">
-        {categories.find((cat) => cat.id === product.categoryId)?.name}
+        {categoryName || "Без категории"}
       </Typography>
       {product.imageUrl && (
         <Box mt={2}>
@@ -175,11 +175,13 @@ const ProductDetailsPage: React.FC = () => {
             fullWidth
             margin="normal"
             value={editCategoryId}
-            onChange={(e) => setEditCategoryId(Number(e.target.value))}
-            required
+            onChange={(e) => setEditCategoryId(e.target.value)}
           >
+            <MenuItem value="">
+              <em>Без категории</em>
+            </MenuItem>
             {categories.map((cat) => (
-              <MenuItem key={cat.id} value={cat.id}>
+              <MenuItem key={cat._id} value={cat._id}>
                 {cat.name}
               </MenuItem>
             ))}
@@ -210,14 +212,13 @@ const ProductDetailsPage: React.FC = () => {
             onChange={(e) => setEditPrice(parseFloat(e.target.value))}
             required
           />
-
           <TextField
             label="Просмотров"
             fullWidth
             margin="normal"
             value={viewCount}
+            disabled
           />
-
           <TextField
             label="URL изображения"
             fullWidth

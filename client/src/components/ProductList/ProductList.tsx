@@ -1,9 +1,12 @@
-import React, { FC, useState, useRef, useCallback, useEffect } from "react";
+import { FC, useEffect, useRef, useCallback, useState } from "react";
 import { Grid, Box, Typography, CircularProgress } from "@mui/material";
 import { CSSTransition, TransitionGroup } from "react-transition-group";
 import ProductCard from "../ProductCard/ProductCard";
 import { Product } from "../../types/Product";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchProducts } from "../../store/slices/productsSlice";
+import { RootState } from "../../store/store";
 
 interface ProductListProps {
   products: Product[];
@@ -13,33 +16,34 @@ const ITEMS_PER_LOAD = 6;
 
 const ProductList: FC<ProductListProps> = ({ products }) => {
   const navigate = useNavigate();
-  const [visibleProducts, setVisibleProducts] = useState<Product[]>([]);
+  const dispatch = useDispatch();
+
+  const { total, loading } = useSelector((state: RootState) => state.products);
+
+  const [offset, setOffset] = useState<number>(0);
   const [hasMore, setHasMore] = useState<boolean>(true);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const observer = useRef<IntersectionObserver | null>(null);
   const lastProductElementRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    setVisibleProducts(products.slice(0, ITEMS_PER_LOAD));
-    setHasMore(products.length > ITEMS_PER_LOAD);
-  }, [products]);
+    if (products.length < total) {
+      setHasMore(true);
+    } else {
+      setHasMore(false);
+    }
+  }, [products, total]);
 
   const loadMoreProducts = useCallback(() => {
-    if (isLoading) return;
-    setIsLoading(true);
-    const currentLength = visibleProducts.length;
-    const isMore = currentLength < products.length;
-    const nextResults = isMore
-      ? products.slice(currentLength, currentLength + ITEMS_PER_LOAD)
-      : [];
-
-    setTimeout(() => {
-      setVisibleProducts((prev) => [...prev, ...nextResults]);
-      setHasMore(currentLength + nextResults.length < products.length);
-      setIsLoading(false);
-    }, 500);
-  }, [visibleProducts.length, products, isLoading]);
+    if (loading) return;
+    dispatch(
+      fetchProducts({
+        offset: products.length,
+        limit: ITEMS_PER_LOAD,
+      }) as any
+    );
+    setOffset(offset + ITEMS_PER_LOAD);
+  }, [loading, dispatch, products.length]);
 
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -67,13 +71,13 @@ const ProductList: FC<ProductListProps> = ({ products }) => {
     return () => {
       if (observer.current) observer.current.disconnect();
     };
-  }, [handleObserver, visibleProducts]);
+  }, [handleObserver, products]);
 
   const handleCardClick = (product: Product) => {
-    navigate(`/products/${product.id}`);
+    navigate(`/products/${product._id}`);
   };
 
-  if (products.length === 0) {
+  if (!loading && products.length === 0) {
     return (
       <Box textAlign="center" mt={5}>
         <Typography variant="h6" color="text.secondary">
@@ -87,10 +91,14 @@ const ProductList: FC<ProductListProps> = ({ products }) => {
     <Box>
       <Grid container spacing={3}>
         <TransitionGroup component={null}>
-          {visibleProducts.map((product, index) => {
-            if (index === visibleProducts.length - 1) {
+          {products.map((product, index) => {
+            if (index === products.length - 1) {
               return (
-                <CSSTransition key={product.id} timeout={500} classNames="fade">
+                <CSSTransition
+                  key={product._id}
+                  timeout={500}
+                  classNames="fade"
+                >
                   <Grid item xs={12} sm={6} md={4} ref={lastProductElementRef}>
                     <ProductCard
                       product={product}
@@ -101,7 +109,11 @@ const ProductList: FC<ProductListProps> = ({ products }) => {
               );
             } else {
               return (
-                <CSSTransition key={product.id} timeout={500} classNames="fade">
+                <CSSTransition
+                  key={product._id}
+                  timeout={500}
+                  classNames="fade"
+                >
                   <Grid item xs={12} sm={6} md={4}>
                     <ProductCard
                       product={product}
@@ -115,7 +127,7 @@ const ProductList: FC<ProductListProps> = ({ products }) => {
         </TransitionGroup>
       </Grid>
 
-      {isLoading && (
+      {loading && (
         <Box textAlign="center" mt={2}>
           <CircularProgress />
         </Box>

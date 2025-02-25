@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { useSelector } from "react-redux";
+import React, { useState, useMemo, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../store/store";
 import { Box, Button } from "@mui/material";
 import ProductList from "../components/ProductList/ProductList";
@@ -7,9 +7,11 @@ import AddProductModal from "../components/AddProductModal/AddProductModal";
 import Sidebar, { Filters } from "../components/Sidebar/Sidebar";
 import { Category } from "../types/Category";
 import { useSidebar } from "../context/SidebarContext";
+import { fetchProducts } from "../store/slices/productsSlice";
 
 const ProductsPage: React.FC = () => {
-  const products = useSelector((state: RootState) => state.products.products);
+  const dispatch = useDispatch();
+  const { products } = useSelector((state: RootState) => state.products);
   const categories = useSelector(
     (state: RootState) => state.categories.categories
   ) as Category[];
@@ -23,8 +25,13 @@ const ProductsPage: React.FC = () => {
 
   const { isSidebarOpen, closeSidebar } = useSidebar();
 
+  useEffect(() => {
+    dispatch(fetchProducts({ offset: 0, limit: 6 }) as any);
+  }, [dispatch]);
+
   const handleApplyFilters = (newFilters: Filters) => {
     setFilters(newFilters);
+    closeSidebar();
   };
 
   const filteredProducts = useMemo(() => {
@@ -34,7 +41,7 @@ const ProductsPage: React.FC = () => {
         : true;
       const stockMatch = filters.inStock ? product.quantity > 0 : true;
       const categoryMatch = filters.category
-        ? product.categoryId === filters.category
+        ? product.category === filters.category
         : true;
       return nameMatch && stockMatch && categoryMatch;
     });
@@ -51,11 +58,14 @@ const ProductsPage: React.FC = () => {
           Добавить товар
         </Button>
       </Box>
+
       <ProductList products={filteredProducts} />
+
       <AddProductModal
         open={isAddModalOpen}
         onClose={() => setAddModalOpen(false)}
       />
+
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={closeSidebar}

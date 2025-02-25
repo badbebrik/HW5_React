@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import { FC } from "react";
 import {
   Card,
   CardHeader,
@@ -30,12 +30,13 @@ const StyledCard = styled(Card)(({ theme }) => ({
 const IMAGE_HEIGHT = 180;
 
 const ProductCard: FC<ProductCardProps> = ({ product, onClick }) => {
-  const { name, description, quantity, unit, imageUrl, categoryId } = product;
+  const { name, description, quantity, unit, imageUrl } = product;
   const categories = useSelector(
     (state: RootState) => state.categories.categories
   );
   const categoryName =
-    categories.find((cat) => cat.id === categoryId)?.name || "Не указано";
+    categories.find((cat) => cat._id === product.category)?.name ||
+    "Без категории";
 
   return (
     <Tooltip title={description || "Нет описания"} arrow>

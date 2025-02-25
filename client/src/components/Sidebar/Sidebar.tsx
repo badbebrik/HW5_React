@@ -22,7 +22,7 @@ import { Category } from "../../types/Category";
 export interface Filters {
   name: string;
   inStock: boolean;
-  category: number | "";
+  category: string;
 }
 
 interface SidebarProps {
@@ -60,8 +60,8 @@ const Sidebar: FC<SidebarProps> = ({
     setFilters({ ...filters, inStock: e.target.checked });
   };
 
-  const handleSelectChange = (e: SelectChangeEvent<number | "">) => {
-    setFilters({ ...filters, category: e.target.value as number | "" });
+  const handleSelectChange = (e: SelectChangeEvent<string>) => {
+    setFilters({ ...filters, category: e.target.value });
   };
 
   const handleClearName = () => {
@@ -125,11 +125,11 @@ const Sidebar: FC<SidebarProps> = ({
             inputProps={{ "aria-label": "Категория товара" }}
             IconComponent={ArrowDropDownIcon}
             renderValue={(selected) => {
-              if (selected === 0) {
+              if (!selected) {
                 return <em>Все категории</em>;
               } else {
                 const selectedCategory = categories.find(
-                  (cat) => cat.id === selected
+                  (cat) => cat._id === selected
                 );
                 return (
                   <Box
@@ -139,7 +139,9 @@ const Sidebar: FC<SidebarProps> = ({
                       justifyContent: "space-between",
                     }}
                   >
-                    <Box>{selectedCategory ? selectedCategory.name : selected}</Box>
+                    <Box>
+                      {selectedCategory ? selectedCategory.name : "???"}
+                    </Box>
                     <IconButton
                       size="small"
                       onMouseDown={(e) => {
@@ -161,7 +163,7 @@ const Sidebar: FC<SidebarProps> = ({
               <em>Все категории</em>
             </MenuItem>
             {categories.map((cat) => (
-              <MenuItem key={cat.id} value={cat.id}>
+              <MenuItem key={cat._id} value={cat._id}>
                 {cat.name}
               </MenuItem>
             ))}

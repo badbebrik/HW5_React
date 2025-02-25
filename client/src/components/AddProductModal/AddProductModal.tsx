@@ -9,9 +9,8 @@ import {
   MenuItem,
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
-import { addProduct } from "../../store/slices/productsSlice";
+import { createProduct } from "../../store/slices/productsSlice";
 import { RootState } from "../../store/store";
-import { Product } from "../../types/Product";
 
 interface AddProductModalProps {
   open: boolean;
@@ -20,34 +19,34 @@ interface AddProductModalProps {
 
 const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
   const dispatch = useDispatch();
-  const categories = useSelector(
-    (state: RootState) => state.categories.categories
-  );
+  const { categories } = useSelector((state: RootState) => state.categories);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState<number | "">("");
+  const [categoryId, setCategoryId] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(0);
   const [unit, setUnit] = useState("");
   const [price, setPrice] = useState<number>(0);
   const [imageUrl, setImageUrl] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name || !description || quantity <= 0 || !unit || price <= 0) {
-      alert("Все поля обязательны для заполнения (категория опциональна)");
+      alert("Все поля обязательны (кроме категории и картинки)");
       return;
     }
-    const newProduct: Product = {
-      id: Date.now(),
+
+    const newProductData = {
       name,
       description,
-      categoryId: categoryId === "" ? undefined : Number(categoryId),
+      category: categoryId || null,
       quantity,
-      unit,
       price,
+      unit,
       imageUrl,
     };
-    dispatch(addProduct(newProduct));
+
+    await dispatch(createProduct(newProductData) as any);
+
     setName("");
     setDescription("");
     setCategoryId("");
@@ -55,6 +54,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
     setUnit("");
     setPrice(0);
     setImageUrl("");
+
     onClose();
   };
 
@@ -84,13 +84,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose }) => {
           fullWidth
           margin="normal"
           value={categoryId}
-          onChange={(e) => setCategoryId(Number(e.target.value))}
+          onChange={(e) => setCategoryId(e.target.value)}
         >
           <MenuItem value="">
             <em>Без категории</em>
           </MenuItem>
           {categories.map((cat) => (
-            <MenuItem key={cat.id} value={cat.id}>
+            <MenuItem key={cat._id} value={cat._id}>
               {cat.name}
             </MenuItem>
           ))}

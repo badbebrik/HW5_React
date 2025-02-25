@@ -5,8 +5,20 @@ import ProductDetailsPage from "./pages/ProductDetailsPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import ProfilePage from "./pages/ProfilePage";
 import { Box } from "@mui/material";
+import { AppDispatch } from "./store/store";
+import { useDispatch } from "react-redux";
+import React, { useEffect } from "react";
+import { fetchCategories } from "./store/slices/categoriesSlice";
+import { fetchProducts } from "./store/slices/productsSlice";
 
 const App: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
+
+  useEffect(() => {
+    dispatch(fetchCategories());
+    dispatch(fetchProducts({ offset: 0, limit: 6 }));
+  }, [dispatch]);
+
   return (
     <Router>
       <Navbar />

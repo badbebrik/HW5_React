@@ -33,16 +33,16 @@ const viewCounterMiddleware =
     return next(action);
   };
 
-export const store = configureStore({
-  reducer: {
-    products: productsReducer,
-    categories: categoriesReducer,
-    user: userReducer,
-    views: viewsReducer,
-  },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(loggerMiddleware, viewCounterMiddleware),
-});
-
-export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch;
+  export const store = configureStore({
+    reducer: {
+      products: productsReducer,
+      categories: categoriesReducer,
+      user: userReducer,
+      views: viewsReducer,
+    },
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat(loggerMiddleware, viewCounterMiddleware),
+  });
+  
+  export type RootState = ReturnType<typeof store.getState>;
+  export type AppDispatch = typeof store.dispatch;
